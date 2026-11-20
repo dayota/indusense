@@ -1,0 +1,12 @@
+[project]
+name = "indusense"
+version = "0.1.0"
+requires-python = ">=3.15"
+dependencies = [
+    "pandas>=3.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+]
