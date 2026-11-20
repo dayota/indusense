@@ -1,0 +1,11 @@
+version: 1
+dataset: telemetry
+extra_columns: infer
+columns:
+  machine_id: {type: IDENTITY, nullable: false}
+  timestamp: {type: DATETIME}
+  pieces_produced: {type: INTEGER}
+  temperature_c: {type: FLOAT}
+  pressure_bar: {type: FLOAT}
+  voltage_mean_v: {type: FLOAT}
+  rotation_mean_rpm: {type: FLOAT}

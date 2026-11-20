@@ -72,12 +72,14 @@ Utiliser le nom `releves_incidents_HHMMSS.md`, cohérent avec le fichier source 
 
 ## Organisation du code
 
-Factoriser le traitement en cinq fonctions réutilisables :
+Le [notebook](../../../notebooks/sprint1.ipynb) lance cinq fonctions réutilisables, désormais regroupées dans le [module d’ingestion](../../../indusense/ingestion.py) :
 
 1. Lecture du CSV.
 2. Inférence des types.
 3. Calcul des statistiques.
 4. Rendu Markdown.
 5. Orchestration du traitement et écriture des rapports.
+
+Les contrats par dataset et le catalogue des types sont externalisés en YAML. Le [guide de configuration](../../ingestion-contracts.md) décrit l’ajout d’un dataset et les règles de validation.
 
 Le traitement SQL reste hors périmètre de ce challenge.

@@ -1,0 +1,17 @@
+version: 1
+dataset: incidents
+extra_columns: infer
+columns:
+  incident_id: {type: IDENTITY, nullable: false}
+  machine_id: {type: IDENTITY, nullable: false}
+  operator_badge: {type: IDENTITY}
+  date: {type: DATE}
+  time: {type: TIME}
+  severity: {type: INTEGER}
+  operator_name: {type: TEXT}
+  comment: {type: TEXT}
+  shift: {type: TEXT}
+column_rules:
+  - pattern: '^type_'
+    type: INTEGER
+    allowed: [0, 1]
