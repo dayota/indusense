@@ -2,6 +2,28 @@
 
 Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../indusense/ingestion.py). Installer les dépendances avec `uv sync` avant de l’exécuter.
 
+## Utiliser le skill dataset-identity
+
+Le [skill dataset-identity](../skills/dataset-identity/SKILL.md) accompagne l’examen d’un CSV, la création ou l’adaptation de son contrat YAML et la génération du rapport. Sa source est versionnée dans le dépôt ; son installation personnelle se trouve dans `$CODEX_HOME/skills/dataset-identity` ou, par défaut, `~/.codex/skills/dataset-identity`.
+
+Exemple d’invocation dans une session disposant du skill :
+
+```text
+$dataset-identity Crée une carte d’identité pour datas/ventes.csv dans ce projet.
+```
+
+La sélection automatique reste autorisée. Si le skill n’apparaît pas dans une session déjà ouverte, ouvrir une nouvelle session ; son [point d’entrée versionné](../skills/dataset-identity/SKILL.md) peut aussi être fourni explicitement à l’agent.
+
+Le skill demande seulement les précisions nécessaires, par exemple pour un format de date ambigu. Il ne déduit pas les contraintes métier de la seule distribution des données et n’effectue pas de commit ou push sans demande. Il couvre actuellement les CSV.
+
+Le [lanceur du skill](../skills/dataset-identity/scripts/run_identity.py) utilise le moteur existant et refuse toute génération sur `main` ou en HEAD détachée. Exemple depuis la racine, avec `uv run python` ou l’interpréteur configuré du projet :
+
+```bash
+uv run python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/releves_incidents.csv --contract config/contracts/incidents.yaml
+```
+
+Ce contrôle complète les consignes de l’agent, qui s’appliquent aussi avant d’écrire le contrat. Le [bilan de validation](sprints/1/challenge1-skill-validation.md) distingue les essais automatisés du lanceur et la revue des consignes.
+
 ## Configuration
 
 - [types.yaml](../config/types.yaml) définit les types, leurs convertisseurs, les formats temporels et les statistiques applicables.
