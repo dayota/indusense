@@ -1,0 +1,3 @@
+interface:
+  display_name: "Cartes d’identité CSV"
+  short_description: "Créer des contrats YAML et des rapports CSV"

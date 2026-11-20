@@ -1,0 +1,29 @@
+version: 1
+types:
+  TEXT:
+    converter: string
+    statistics: []
+  IDENTITY:
+    converter: string
+    statistics: []
+  INTEGER:
+    converter: integer
+    statistics: [min, max, mean, median]
+  FLOAT:
+    converter: number
+    statistics: [min, max, mean, median]
+  DATE:
+    converter: datetime
+    format: "%Y-%m-%d"
+    pattern: '\d{4}-\d{2}-\d{2}'
+    statistics: [min, max]
+  TIME:
+    converter: datetime
+    format: "%H:%M"
+    pattern: '\d{2}:\d{2}'
+    statistics: [min, max]
+  DATETIME:
+    converter: datetime
+    format: "%Y-%m-%d %H:%M:%S"
+    pattern: '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
+    statistics: [min, max]
