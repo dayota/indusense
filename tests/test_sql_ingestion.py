@@ -8,9 +8,9 @@ from unittest.mock import patch
 import pandas as pd
 from sqlglot.errors import ParseError
 
-from indusense.contracts import load_type_catalog
-from indusense.ingestion import DEFAULT_TYPES, ROOT
-from indusense.sql_ingestion import analyze_table, generate_sql_identity, parse_sql_source
+from scripts.contracts import load_type_catalog
+from scripts.ingestion import DEFAULT_TYPES, ROOT
+from scripts.sql_ingestion import analyze_table, generate_sql_identity, parse_sql_source
 
 
 class SQLIngestionTests(unittest.TestCase):
@@ -135,7 +135,7 @@ class SQLIngestionTests(unittest.TestCase):
     def test_collision_does_not_overwrite_report(self):
         result = self.generate("CREATE TABLE t (n INTEGER); INSERT INTO t VALUES (-2), (4);")
         before = result["path"].read_bytes()
-        with patch("indusense.sql_ingestion.datetime") as clock:
+        with patch("scripts.sql_ingestion.datetime") as clock:
             clock.now.return_value = result["begin"]
             with self.assertRaises(FileExistsError):
                 generate_sql_identity(self.source, root=self.root)

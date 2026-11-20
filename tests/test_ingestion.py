@@ -8,11 +8,11 @@ from unittest.mock import patch
 import pandas as pd
 import yaml
 
-from indusense.contracts import load_configuration
-from indusense.ingestion import (
+from scripts.contracts import load_configuration
+from scripts.ingestion import (
     ROOT, compute_statistics, generate_identity, infer_columns,
 )
-from indusense.sql_ingestion import generate_sql_identity
+from scripts.sql_ingestion import generate_sql_identity
 
 
 class IngestionTests(unittest.TestCase):
@@ -116,7 +116,7 @@ class IngestionTests(unittest.TestCase):
         self.assertIn("20/11/2026", report)
         self.assertIn("| code | IDENTITY |", report)
         # Rejouer avec la même heure doit préserver le rapport existant.
-        with patch("indusense.ingestion.datetime") as clock:
+        with patch("scripts.ingestion.datetime") as clock:
             clock.now.return_value = result["begin"]
             with self.assertRaises(FileExistsError):
                 generate_identity(source, "example", contract_path=self.root / "contract.yaml", types_path=self.types_path, root=self.root)
@@ -138,7 +138,7 @@ class IngestionTests(unittest.TestCase):
             def isolated_sql(*args, **kwargs):
                 kwargs["root"] = Path(output)
                 return generate_sql_identity(*args, **kwargs)
-            with self.subTest(folder=folder), tempfile.TemporaryDirectory() as output, patch("indusense.sql_ingestion.generate_sql_identity", side_effect=isolated_sql):
+            with self.subTest(folder=folder), tempfile.TemporaryDirectory() as output, patch("scripts.sql_ingestion.generate_sql_identity", side_effect=isolated_sql):
                 os.chdir(folder)
                 namespace = {}
                 for cell in notebook["cells"]:

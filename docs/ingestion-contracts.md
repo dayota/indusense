@@ -1,6 +1,6 @@
 # Réutiliser les cartes d’identité CSV et SQL
 
-Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../indusense/ingestion.py). Installer les dépendances avec `uv sync` avant de l’exécuter.
+Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../scripts/ingestion.py). Installer les dépendances avec `uv sync` avant de l’exécuter.
 
 ## Utiliser le skill dataset-identity
 
@@ -32,7 +32,7 @@ Ce contrôle complète les consignes de l’agent, qui s’appliquent aussi avan
 
 - [types.yaml](../config/types.yaml) définit les types, leurs convertisseurs, les formats temporels et les statistiques applicables.
 - Les [contrats](../config/contracts/) décrivent les colonnes de chaque dataset. Les noms sont sensibles à la casse.
-- Les convertisseurs sont des fonctions Python du [registre explicite](../indusense/contracts.py). Le YAML référence leur nom ; il ne peut pas importer ou exécuter une fonction arbitraire.
+- Les convertisseurs sont des fonctions Python du [registre explicite](../scripts/contracts.py). Le YAML référence leur nom ; il ne peut pas importer ou exécuter une fonction arbitraire.
 
 Les fichiers portent `version: 1`. Le chargement repose sur un dérivé de `yaml.SafeLoader` refusant aussi les clés dupliquées ([documentation PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation)). Un type, un convertisseur ou une option inconnus sont refusés avant la lecture du CSV.
 
@@ -109,12 +109,12 @@ Le catalogue contient aussi `DECIMAL` (convertisseur `decimal`), `BOOLEAN` (`boo
 
 ## Carte d’identité PostgreSQL
 
-Le [module SQL](../indusense/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` réutilise ce même module pour son parcours SQL.
+Le [module SQL](../scripts/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` réutilise ce même module pour son parcours SQL.
 
 Depuis le notebook, après la cellule définissant `ROOT` :
 
 ```python
-from indusense.sql_ingestion import generate_sql_identity
+from scripts.sql_ingestion import generate_sql_identity
 
 sql_report = generate_sql_identity(ROOT / "datas" / "machine.sql", root=ROOT)
 print(sql_report["path"])
