@@ -2,6 +2,8 @@
 
 Date : 2026-11-20. Branche de réalisation : `sprint1/challenge1`.
 
+Ce bilan décrit la version initiale limitée aux CSV. L’[extension SQL du challenge 2](challenge2-skill-validation.md) documente le périmètre et les tests actuels.
+
 ## Livrables
 
 - [Instructions du skill](../../../skills/dataset-identity/SKILL.md).

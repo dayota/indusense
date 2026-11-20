@@ -4,25 +4,29 @@ Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ing
 
 ## Utiliser le skill dataset-identity
 
-Le [skill dataset-identity](../skills/dataset-identity/SKILL.md) accompagne l’examen d’un CSV, la création ou l’adaptation de son contrat YAML et la génération du rapport. Sa source est versionnée dans le dépôt ; son installation personnelle se trouve dans `$CODEX_HOME/skills/dataset-identity` ou, par défaut, `~/.codex/skills/dataset-identity`.
+Le [skill dataset-identity](../skills/dataset-identity/SKILL.md) accompagne l’examen d’un CSV ou d’un script PostgreSQL et la génération de son rapport. Pour un CSV, il crée ou adapte le contrat YAML ; pour un SQL, le schéma déclaré détermine le contrat en mémoire. Sa source est versionnée dans le dépôt ; son installation personnelle se trouve dans `$CODEX_HOME/skills/dataset-identity` ou, par défaut, `~/.codex/skills/dataset-identity`.
 
 Exemple d’invocation dans une session disposant du skill :
 
 ```text
 $dataset-identity Crée une carte d’identité pour datas/ventes.csv dans ce projet.
+$dataset-identity Crée une carte d’identité pour datas/machine.sql sans exécuter le SQL.
 ```
 
 La sélection automatique reste autorisée. Si le skill n’apparaît pas dans une session déjà ouverte, ouvrir une nouvelle session ; son [point d’entrée versionné](../skills/dataset-identity/SKILL.md) peut aussi être fourni explicitement à l’agent.
 
-Le skill demande seulement les précisions nécessaires, par exemple pour un format de date ambigu. Il ne déduit pas les contraintes métier de la seule distribution des données et n’effectue pas de commit ou push sans demande. Il couvre actuellement les CSV.
+Le skill demande seulement les précisions nécessaires, par exemple pour un format de date ambigu ou un dialecte SQL incertain. Il ne déduit pas les contraintes métier de la seule distribution des données et n’effectue pas de commit ou push sans demande. Le parcours SQL est détaillé dans une [référence dédiée](../skills/dataset-identity/references/sql.md), chargée seulement pour ce format.
 
 Le [lanceur du skill](../skills/dataset-identity/scripts/run_identity.py) utilise le moteur existant et refuse toute génération sur `main` ou en HEAD détachée. Exemple depuis la racine, avec `uv run python` ou l’interpréteur configuré du projet :
 
 ```bash
 uv run python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/releves_incidents.csv --contract config/contracts/incidents.yaml
+uv run python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/machine.sql
 ```
 
-Ce contrôle complète les consignes de l’agent, qui s’appliquent aussi avant d’écrire le contrat. Le [bilan de validation](sprints/1/challenge1-skill-validation.md) distingue les essais automatisés du lanceur et la revue des consignes.
+Le lanceur choisit CSV ou PostgreSQL par l’extension du fichier, sans tenir compte de la casse. `--contract` est obligatoire pour les CSV et refusé pour le SQL ; `--types`, `--output-root` et `--stem` fonctionnent dans les deux parcours. Les autres extensions sont refusées. La sortie JSON donne `path`, `format` et `notes`, puis `rows`/`cols` pour les CSV ou `tables` (dimensions par table) et `inventory` pour le SQL.
+
+Ce contrôle complète les consignes de l’agent, qui s’appliquent aussi avant d’écrire le contrat. Le [bilan initial](sprints/1/challenge1-skill-validation.md) et le [bilan de l’extension SQL](sprints/1/challenge2-skill-validation.md) distinguent les essais automatisés du lanceur et la revue des consignes.
 
 ## Configuration
 
@@ -105,7 +109,7 @@ Le catalogue contient aussi `DECIMAL` (convertisseur `decimal`), `BOOLEAN` (`boo
 
 ## Carte d’identité PostgreSQL
 
-Le [module SQL](../indusense/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` conserve son périmètre CSV.
+Le [module SQL](../indusense/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` réutilise ce même module pour son parcours SQL.
 
 Depuis le notebook, après la cellule définissant `ROOT` :
 

@@ -54,4 +54,4 @@ L’analyse est statique et ciblée sur les constructions du script fourni. Les 
 
 Les contraintes sont décrites mais ne constituent pas une validation de toutes les règles PostgreSQL, notamment CHECK, références, unicité, précision et échelle déclarées. Les décimaux sont calculés sans float ; les moyennes périodiques utilisent une précision décimale d’au moins 28 chiffres. Les horodatages sans fuseau explicite dans une colonne TIMESTAMPTZ sont signalés comme invalides plutôt que d’inventer le fuseau de session d’une base.
 
-Le skill `dataset-identity` et son installation restent limités aux CSV. Le commit et le push du challenge 2 restent à effectuer sur demande.
+Lors de la validation initiale du moteur SQL, le skill était limité aux CSV. L’[extension du skill au SQL](challenge2-skill-validation.md) a ensuite été réalisée et vérifiée séparément. Le traitement SQL initial a été commité et poussé dans `ae102ff` ; l’extension du skill constitue un changement distinct.

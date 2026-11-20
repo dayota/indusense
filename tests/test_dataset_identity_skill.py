@@ -37,11 +37,11 @@ class DatasetIdentitySkillTests(unittest.TestCase):
     def git(self, *args):
         return subprocess.run(["git", "-C", str(self.project), *args], capture_output=True, text=True, check=True)
 
-    def run_skill(self, source="datas/example.csv", contract="config/contracts/example.yaml"):
+    def run_skill(self, source="datas/example.csv", contract="config/contracts/example.yaml", extra=()):
         # Le lancement hors racine vérifie la résolution des chemins du projet.
         return subprocess.run([
             sys.executable, "-B", str(RUNNER), "--project", str(self.project),
-            "--source", source, "--contract", contract,
+            "--source", source, *(["--contract", contract] if contract is not None else []), *extra,
         ], cwd=self.project / "datas", capture_output=True, text=True)
 
     def snapshot(self):
@@ -74,21 +74,25 @@ class DatasetIdentitySkillTests(unittest.TestCase):
         self.assertEqual(report.split("## Column list")[1], reference.split("## Column list")[1])
 
     def test_main_stops_before_any_write(self):
+        (self.project / "datas/example.sql").write_text("CREATE TABLE t (id INTEGER);")
         self.git("symbolic-ref", "HEAD", "refs/heads/main")
         before = self.snapshot()
-        result = self.run_skill()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("choix explicite", result.stderr)
-        self.assertEqual(self.snapshot(), before)
+        for source, contract in (("datas/example.csv", "config/contracts/example.yaml"), ("datas/example.sql", None)):
+            result = self.run_skill(source, contract)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("choix explicite", result.stderr)
+            self.assertEqual(self.snapshot(), before)
 
     def test_detached_head_stops_before_any_write(self):
+        (self.project / "datas/example.sql").write_text("CREATE TABLE t (id INTEGER);")
         self.git("-c", "user.name=Skill Test", "-c", "user.email=skill-test@example.invalid", "commit", "--allow-empty", "-m", "fixture")
         self.git("checkout", "--detach")
         before = self.snapshot()
-        result = self.run_skill()
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("HEAD détachée", result.stderr)
-        self.assertEqual(self.snapshot(), before)
+        for source, contract in (("datas/example.csv", "config/contracts/example.yaml"), ("datas/example.sql", None)):
+            result = self.run_skill(source, contract)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("HEAD détachée", result.stderr)
+            self.assertEqual(self.snapshot(), before)
 
     def test_invalid_contract_produces_no_report(self):
         self.contract.write_text(self.contract.read_text().replace("type: FLOAT", "type: UNKNOWN"))
@@ -97,13 +101,65 @@ class DatasetIdentitySkillTests(unittest.TestCase):
         self.assertIn("Type inconnu", result.stderr)
         self.assertFalse((self.project / "artifacts").exists())
 
-    def test_sql_refused_without_writes(self):
-        (self.project / "datas/example.sql").write_text("CREATE TABLE example (id INTEGER);")
+    def test_other_formats_refused_without_writes(self):
+        (self.project / "datas/example.json").write_text("{}")
+        before = self.snapshot()
+        result = self.run_skill("datas/example.json", None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Format non pris en charge", result.stderr)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_sql_reference_report_matches_module(self):
+        source = self.project / "datas/machine.sql"
+        shutil.copy2(ROOT / "datas/machine.sql", source)
+        before = source.read_bytes()
+        result = self.run_skill("datas/machine.sql", None)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        summary = json.loads(result.stdout)
+        self.assertEqual(summary["format"], "sql")
+        self.assertEqual(summary["tables"], {"machine": {"rows": 15, "cols": 11}, "maintenance": {"rows": 115, "cols": 11}})
+        self.assertEqual(sum(summary["inventory"].values()), 10)
+        report = Path(summary["path"]).read_text()
+        reference = (ROOT / "artifacts/ingestion/identities/20261120/machine_155624.md").read_text()
+        self.assertEqual(report.split("## Instructions")[1], reference.split("## Instructions")[1])
+        self.assertEqual(source.read_bytes(), before)
+
+    def test_sql_contract_refused_and_csv_contract_required(self):
+        (self.project / "datas/example.sql").write_text("CREATE TABLE t (id INTEGER);")
         before = self.snapshot()
         result = self.run_skill("datas/example.sql")
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("SQL est hors périmètre", result.stderr)
+        self.assertIn("CREATE TABLE fait autorité", result.stderr)
+        result = self.run_skill(contract=None)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("obligatoire pour un CSV", result.stderr)
         self.assertEqual(self.snapshot(), before)
+
+    def test_sql_parser_error_and_unsupported_statement_no_report(self):
+        source = self.project / "datas/example.sql"
+        for text in ("CREATE TABLE t (n INTEGER", "CREATE TABLE t (n INTEGER); UPDATE t SET n = 1;"):
+            source.write_text(text)
+            before = self.snapshot()
+            result = self.run_skill("datas/example.sql", None)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn("Traceback", result.stderr)
+            self.assertTrue("impossible" in result.stderr or "hors périmètre" in result.stderr)
+            self.assertEqual(self.snapshot(), before)
+
+    def test_sql_uppercase_extension_output_options_and_observations(self):
+        (self.project / "datas/example.SQL").write_text("""
+            CREATE TABLE t (id INTEGER PRIMARY KEY, at TIMESTAMPTZ DEFAULT NOW(), amount NUMERIC);
+            INSERT INTO t (id, amount) VALUES (1, 0.1), (2, 0.2);
+        """)
+        result = self.run_skill("datas/example.SQL", None, extra=("--output-root", "output", "--stem", "custom", "--types", "config/types.yaml"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        summary = json.loads(result.stdout)
+        path = Path(summary["path"])
+        self.assertTrue(path.is_relative_to(self.project / "output"))
+        self.assertTrue(path.name.startswith("custom_"))
+        self.assertIn("| amount | 0.1 | 0.2 | 0.15 | 0.15 |", path.read_text())
+        self.assertTrue(any("omise" in note for note in summary["notes"]))
+        self.assertFalse((self.project / "artifacts").exists())
 
 
 if __name__ == "__main__":
