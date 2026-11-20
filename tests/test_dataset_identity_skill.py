@@ -19,7 +19,7 @@ class DatasetIdentitySkillTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.project = Path(self.temp.name)
         self.git("init", "-b", "skill-test")
-        for folder in ("config", "indusense"):
+        for folder in ("config", "scripts"):
             shutil.copytree(ROOT / folder, self.project / folder, ignore=shutil.ignore_patterns("__pycache__"))
         (self.project / "docs").mkdir()
         shutil.copy2(ROOT / "docs/ingestion-contracts.md", self.project / "docs/ingestion-contracts.md")

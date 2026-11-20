@@ -42,7 +42,7 @@ def main():
         raise ValueError("--contract est obligatoire pour un CSV.")
     if source_format == "sql" and args.contract:
         raise ValueError("--contract ne s’applique pas au SQL : le schéma CREATE TABLE fait autorité.")
-    for required in ("docs/ingestion-contracts.md", "indusense/ingestion.py", "indusense/contracts.py"):
+    for required in ("docs/ingestion-contracts.md", "scripts/ingestion.py", "scripts/contracts.py"):
         if not (root / required).is_file():
             raise ValueError(f"Projet d’ingestion introuvable : {required} absent dans {root}")
     stem = args.stem or source.stem
@@ -51,15 +51,15 @@ def main():
     sys.path.insert(0, str(root))
     options = {"types_path": project_path(root, args.types), "root": project_path(root, args.output_root)}
     if source_format == "csv":
-        from indusense.ingestion import generate_identity
+        from scripts.ingestion import generate_identity
 
         result = generate_identity(source, stem, contract_path=project_path(root, args.contract), **options)
         summary = {"rows": result["rows"], "cols": result["cols"]}
     else:
-        if not (root / "indusense/sql_ingestion.py").is_file():
-            raise ValueError("Module indusense/sql_ingestion.py absent : le projet doit prendre en charge le SQL.")
+        if not (root / "scripts/sql_ingestion.py").is_file():
+            raise ValueError("Module scripts/sql_ingestion.py absent : le projet doit prendre en charge le SQL.")
         from sqlglot.errors import SqlglotError
-        from indusense.sql_ingestion import generate_sql_identity
+        from scripts.sql_ingestion import generate_sql_identity
 
         try:
             result = generate_sql_identity(source, stem, **options)

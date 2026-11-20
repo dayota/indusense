@@ -19,7 +19,7 @@ Le script annonce PostgreSQL et contient `BEGIN`, `COMMIT`, deux `CREATE TABLE`,
 
 Ces nombres constituent les résultats attendus à confirmer par le parseur. Les données couvrent des identifiants, du texte, des entiers, un décimal `NUMERIC(6,2)`, une date, un booléen et des horodatages `TIMESTAMPTZ`.
 
-Réutiliser le [moteur CSV](../../../indusense/ingestion.py), le [chargement des contrats](../../../indusense/contracts.py) et le [catalogue des types](../../../config/types.yaml) lorsque leurs interfaces conviennent. Préserver le fonctionnement du [notebook](../../../notebooks/sprint1.ipynb), des contrats CSV et du skill CSV existant. L’extension du skill au SQL est hors périmètre de ce challenge.
+Réutiliser le [moteur CSV](../../../scripts/ingestion.py), le [chargement des contrats](../../../scripts/contracts.py) et le [catalogue des types](../../../config/types.yaml) lorsque leurs interfaces conviennent. Préserver le fonctionnement du [notebook](../../../notebooks/sprint1.ipynb), des contrats CSV et du skill CSV existant. L’extension du skill au SQL est hors périmètre de ce challenge.
 
 ## Étape 1 — Vérifier la branche et la source
 
@@ -41,7 +41,7 @@ Réutiliser le [moteur CSV](../../../indusense/ingestion.py), le [chargement des
 
 ## Étape 3 — Extraire les schémas et les valeurs
 
-- [x] Créer un module SQL dédié, proposé sous `indusense/sql_ingestion.py`, avec des fonctions séparant lecture, parsing, extraction, analyse et génération.
+- [x] Créer un module SQL dédié, proposé sous `scripts/sql_ingestion.py`, avec des fonctions séparant lecture, parsing, extraction, analyse et génération.
 - [x] Extraire les tables, l’ordre des colonnes, les types SQL déclarés et les contraintes utiles à leur description : clé primaire, référence, nullabilité, défaut et `CHECK`.
 - [x] Extraire les tuples des `INSERT ... VALUES` en respectant leur liste explicite de colonnes ; vérifier que chaque tuple a le bon nombre de valeurs.
 - [x] Regrouper les tuples par table et conserver les doublons présents dans le fichier.

@@ -7,14 +7,14 @@ description: "Générer une carte d’identité de métadonnées, types et stati
 
 ## Préparer le contexte
 
-Retrouver la racine du projet dans le contexte utilisateur ou à partir du répertoire courant. Les chemins projet ci-dessous sont relatifs à cette racine, jamais au dossier d’installation du skill. Vérifier la présence de `docs/ingestion-contracts.md`, `indusense/ingestion.py`, `indusense/contracts.py` et `config/types.yaml`. Si ces ressources manquent, demander le chemin du projet ; ne pas recréer le moteur.
+Retrouver la racine du projet dans le contexte utilisateur ou à partir du répertoire courant. Les chemins projet ci-dessous sont relatifs à cette racine, jamais au dossier d’installation du skill. Vérifier la présence de `docs/ingestion-contracts.md`, `scripts/ingestion.py`, `scripts/contracts.py` et `config/types.yaml`. Si ces ressources manquent, demander le chemin du projet ; ne pas recréer le moteur.
 
 Lire les consignes applicables du dépôt puis le guide d’ingestion. Vérifier `git branch --show-current` au début de la tâche et avant toute écriture, y compris du contrat. Sur `main` ou HEAD détachée, demander à l’utilisateur de créer ou sélectionner une branche, attendre son choix explicite et préserver les modifications existantes. L’inspection en lecture seule reste possible. Ne pas créer ou changer de branche automatiquement.
 
 Déterminer la source, son format, le contrat éventuel pour un CSV et la destination attendue. Résoudre les chemins depuis la racine du projet. Le lanceur choisit le moteur par l’extension `.csv` ou `.sql` sans tenir compte de la casse ; refuser les autres formats. Si le contenu contredit l’extension, signaler le problème sans le traiter silencieusement avec un autre moteur.
 
 - Pour un CSV, suivre la section suivante et le guide d’ingestion.
-- Pour un script PostgreSQL, lire les [consignes SQL](references/sql.md) et vérifier `indusense/sql_ingestion.py`. Ne pas construire de contrat YAML manuel pour ses tables ; leur schéma déclaré fait autorité. Ne pas exécuter de SQL. Rejoindre ensuite les étapes communes de génération et restitution.
+- Pour un script PostgreSQL, lire les [consignes SQL](references/sql.md) et vérifier `scripts/sql_ingestion.py`. Ne pas construire de contrat YAML manuel pour ses tables ; leur schéma déclaré fait autorité. Ne pas exécuter de SQL. Rejoindre ensuite les étapes communes de génération et restitution.
 
 ## CSV — Examiner et établir le contrat
 
@@ -32,7 +32,7 @@ Réutiliser les types et convertisseurs du catalogue et du registre, notamment `
 
 ## Générer et contrôler
 
-Pour un CSV, valider le contrat avec `load_configuration` du module `indusense.contracts` avant de traiter les données. Un contrat invalide doit empêcher la génération, sans être corrigé silencieusement. Pour le SQL, laisser le module dédié extraire et vérifier le schéma ; ne pas fabriquer de contrat pour contourner une erreur de parsing.
+Pour un CSV, valider le contrat avec `load_configuration` du module `scripts.contracts` avant de traiter les données. Un contrat invalide doit empêcher la génération, sans être corrigé silencieusement. Pour le SQL, laisser le module dédié extraire et vérifier le schéma ; ne pas fabriquer de contrat pour contourner une erreur de parsing.
 
 Le script [run_identity.py](scripts/run_identity.py) centralise le lancement et le contrôle de branche avant l’import du moteur. Depuis la racine du projet, avec l’interpréteur configuré, appeler le script à son chemin réel, résolu depuis le dossier de ce skill :
 

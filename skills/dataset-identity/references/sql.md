@@ -4,7 +4,7 @@ Lire cette référence seulement pour une demande SQL. Les chemins projet sont r
 
 ## Examiner la source
 
-Lire la partie PostgreSQL de `docs/ingestion-contracts.md` et vérifier `indusense/sql_ingestion.py`. Utiliser l’environnement du projet avec ses dépendances verrouillées, dont SQLGlot. Si le module manque, demander le bon projet ; ne pas installer un moteur parallèle.
+Lire la partie PostgreSQL de `docs/ingestion-contracts.md` et vérifier `scripts/sql_ingestion.py`. Utiliser l’environnement du projet avec ses dépendances verrouillées, dont SQLGlot. Si le module manque, demander le bon projet ; ne pas installer un moteur parallèle.
 
 Utiliser `read_text_source` et `parse_sql_source` pour l’examen en lecture seule. Le dialecte pris en charge est PostgreSQL : demander le dialecte si les indices sont ambigus ou signaler l’incompatibilité, sans prétendre prendre en charge un autre dialecte.
 
