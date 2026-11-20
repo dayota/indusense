@@ -58,7 +58,7 @@ Sélectionnez l'interpréteur qui doit avoir le même nom que votre environnemen
 ### La carte d'identité de chaque fichier
 
 Votre challenge est de créer deux fichiers *markdown* ou autre dans un dossier "*artifacts/ingestion/identities*" :
-- artifacts/ingestion/identities/20261120/releves_indicents_HHMMSS.md
+- artifacts/ingestion/identities/20261120/releves_incidents_HHMMSS.md
 - artifacts/ingestion/identities/20261120/telemetry_HHMMSS.md
 
 Chaque fichier sera constitué de la manière suivante :
