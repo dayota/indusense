@@ -2,6 +2,7 @@
 
 import math
 import re
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import pandas as pd
@@ -29,11 +30,36 @@ def datetime_values(series, options):
     return values
 
 
+def decimal_values(series, options):
+    def parse(value):
+        if pd.isna(value):
+            return None
+        try:
+            number = Decimal(str(value))
+            return number if number.is_finite() else None
+        except InvalidOperation:
+            return None
+    return series.map(parse).astype(object)
+
+
+def utc_values(series, options):
+    # Ne pas supposer le fuseau des valeurs naïves.
+    explicit = series.where(series.str.contains(r"[T ]\d{2}:\d{2}.*(?:Z|[+-]\d{2}(?::?\d{2})?)$", regex=True).fillna(False))
+    return pd.to_datetime(explicit, format="ISO8601", errors="coerce", utc=True)
+
+
+def boolean_values(series, options):
+    return series.str.lower().map({"true": True, "false": False}).astype("boolean")
+
+
 CONVERTERS = {
     "string": string_values,
     "integer": integer_values,
     "number": number_values,
     "datetime": datetime_values,
+    "decimal": decimal_values,
+    "datetime_utc": utc_values,
+    "boolean": boolean_values,
 }
 
 
@@ -90,7 +116,7 @@ def validate_options(options, *, type_definition=False):
         raise ValueError("min doit être inférieur ou égal à max")
 
 
-def load_configuration(contract_path, types_path):
+def load_type_catalog(types_path):
     catalog = read_config(types_path)
     if catalog.keys() - {"version", "types"}:
         raise ValueError("Champs inconnus dans le catalogue")
@@ -104,13 +130,18 @@ def load_configuration(contract_path, types_path):
         statistics = options.get("statistics", [])
         if not isinstance(statistics, list) or any(s not in ("min", "max", "mean", "median") for s in statistics):
             raise ValueError(f"Statistiques inconnues pour {name}")
-        if options["converter"] == "string" and statistics:
+        if options["converter"] in ("string", "boolean") and statistics:
             raise ValueError("Les chaînes ne prennent pas de statistiques")
-        if options["converter"] == "datetime":
+        if options["converter"] in ("datetime", "datetime_utc"):
             if not options.get("format") or any(s in statistics for s in ("mean", "median")):
                 raise ValueError("Un type temporel exige un format et accepte seulement min/max")
     if not {"TEXT", "IDENTITY", "INTEGER", "FLOAT", "DATE", "TIME", "DATETIME"} <= types.keys():
         raise ValueError("Le catalogue doit conserver les types de base pour l’inférence")
+    return types
+
+
+def load_configuration(contract_path, types_path):
+    types = load_type_catalog(types_path)
     contract = read_config(contract_path)
     if contract.keys() - {"version", "dataset", "columns", "column_rules", "extra_columns"}:
         raise ValueError("Champs inconnus dans le contrat")
@@ -131,7 +162,7 @@ def load_configuration(contract_path, types_path):
         kind = options.get("type")
         if kind not in types:
             raise ValueError(f"Type inconnu : {kind}")
-        if any(bound in options for bound in ("min", "max")) and types[kind]["converter"] not in ("integer", "number"):
+        if any(bound in options for bound in ("min", "max")) and types[kind]["converter"] not in ("integer", "number", "decimal"):
             raise ValueError("Les bornes min/max sont réservées aux nombres")
     if any("pattern" not in rule for rule in rules):
         raise ValueError("Chaque règle de colonne exige un pattern")

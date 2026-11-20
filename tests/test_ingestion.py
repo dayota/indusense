@@ -12,6 +12,7 @@ from indusense.contracts import load_configuration
 from indusense.ingestion import (
     ROOT, compute_statistics, generate_identity, infer_columns,
 )
+from indusense.sql_ingestion import generate_sql_identity
 
 
 class IngestionTests(unittest.TestCase):
@@ -134,7 +135,10 @@ class IngestionTests(unittest.TestCase):
         original_cwd = Path.cwd()
         self.addCleanup(os.chdir, original_cwd)
         for folder in (ROOT, ROOT / "notebooks"):
-            with self.subTest(folder=folder), tempfile.TemporaryDirectory() as output:
+            def isolated_sql(*args, **kwargs):
+                kwargs["root"] = Path(output)
+                return generate_sql_identity(*args, **kwargs)
+            with self.subTest(folder=folder), tempfile.TemporaryDirectory() as output, patch("indusense.sql_ingestion.generate_sql_identity", side_effect=isolated_sql):
                 os.chdir(folder)
                 namespace = {}
                 for cell in notebook["cells"]:
@@ -146,6 +150,7 @@ class IngestionTests(unittest.TestCase):
                             return generate_identity(*args, **kwargs, root=Path(output))
                         namespace["generate_identity"] = isolated
                 self.assertEqual([r["rows"] for r in namespace["reports"]], [1245, 135626])
+                self.assertEqual(len(namespace["sql_report"]["tables"]["maintenance"]["rows"]), 115)
 
 
 if __name__ == "__main__":
