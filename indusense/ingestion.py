@@ -3,6 +3,8 @@
 import csv
 import io
 import re
+from decimal import Decimal, localcontext
+from statistics import median
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -82,13 +84,24 @@ def compute_statistics(columns):
         row = dict.fromkeys(("min", "max", "mean", "median"))
         row.update(name=name, type=info["type"])
         if not values.empty:
-            for operation in selected:
-                row[operation] = getattr(values, operation)()
+            if info["options"]["converter"] == "decimal":
+                # Aucun passage par float/numpy pour les montants exacts.
+                numbers = list(values)
+                with localcontext() as context:
+                    span = max(v.adjusted() for v in numbers) - min(v.as_tuple().exponent for v in numbers) + 1
+                    context.prec = max(28, span + len(str(len(numbers))) + 8)
+                    operations = {"min": min, "max": max, "median": median,
+                                  "mean": lambda seq: sum(seq, Decimal(0)) / len(seq)}
+                    for operation in selected:
+                        row[operation] = operations[operation](numbers)
+            else:
+                for operation in selected:
+                    row[operation] = getattr(values, operation)()
         statistics.append(row)
     return statistics
 
 
-def read_csv_source(source):
+def read_text_source(source):
     source = Path(source).resolve(strict=True)
     raw = source.read_bytes()
     notes = []
@@ -108,19 +121,21 @@ def read_csv_source(source):
     ) if charset == "utf-8-sig" else charset
     if not text.strip():
         raise ValueError(f"Fichier vide : {source}")
+    return text, {"source": source, "size": len(raw), "charset": charset_label, "notes": notes}
+
+
+def read_csv_source(source):
+    text, metadata = read_text_source(source)
     try:
         separator = csv.Sniffer().sniff(text[:65536], delimiters=",;\t").delimiter
     except csv.Error as exc:
-        raise ValueError(f"Séparateur indéterminé pour {source}") from exc
+        raise ValueError(f"Séparateur indéterminé pour {metadata['source']}") from exc
     frame = pd.read_csv(
         io.StringIO(text), sep=separator, dtype="string", keep_default_na=False,
         skip_blank_lines=False, on_bad_lines="error",
     )
     frame = frame.replace(r"^\s*$", pd.NA, regex=True)
-    return frame, {
-        "source": source, "size": len(raw), "charset": charset_label,
-        "separator": separator, "notes": notes,
-    }
+    return frame, {**metadata, "separator": separator}
 
 
 def render_markdown(metadata, frame, columns, statistics, begin, end):
@@ -131,10 +146,12 @@ def render_markdown(metadata, frame, columns, statistics, begin, end):
         if value is None or pd.isna(value):
             return "N/A"
         options = columns[name]["options"]
-        if options["converter"] == "datetime":
+        if options["converter"] in ("datetime", "datetime_utc"):
             return value.strftime(options["format"])
         if options["converter"] == "integer" and not aggregate:
             return str(int(value))
+        if isinstance(value, Decimal):
+            return str(value)
         return format(float(value), ".12g")
 
     size = float(metadata["size"])

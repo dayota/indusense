@@ -1,4 +1,4 @@
-# Réutiliser les cartes d’identité CSV
+# Réutiliser les cartes d’identité CSV et SQL
 
 Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../indusense/ingestion.py). Installer les dépendances avec `uv sync` avant de l’exécuter.
 
@@ -99,10 +99,41 @@ Un nouveau type peut réutiliser un convertisseur (`string`, `integer`, `number`
 
 Pour un comportement de conversion nouveau, ajouter une fonction Python au registre puis la référencer dans le catalogue. Les types temporels exigent un format et acceptent min/max ; les chaînes n’ont pas de statistiques. Les types de base restent nécessaires pour l’inférence automatique.
 
-Les sorties restent horodatées à Paris et une sortie existante n’est pas écrasée. Les rapports historiques sont conservés. Cette évolution concerne les CSV ; le traitement SQL demeure une étape distincte.
+Les sorties restent horodatées à Paris et une sortie existante n’est pas écrasée. Les rapports historiques sont conservés.
+
+Le catalogue contient aussi `DECIMAL` (convertisseur `decimal`), `BOOLEAN` (`boolean`) et `DATETIME_UTC` (`datetime_utc`). Les décimaux restent des `Decimal` pour les calculs et le rendu ; les booléens n’ont pas de statistiques numériques. `DATETIME_UTC` accepte des horodatages ISO 8601 avec fuseau explicite, les convertit en UTC et refuse les valeurs naïves ; son option `format` concerne le rendu CSV, pas le format d’entrée ISO 8601. Les types ajoutés ne participent pas à l’inférence automatique CSV : un contrat ou le schéma SQL les choisit explicitement.
+
+## Carte d’identité PostgreSQL
+
+Le [module SQL](../indusense/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` conserve son périmètre CSV.
+
+Depuis le notebook, après la cellule définissant `ROOT` :
+
+```python
+from indusense.sql_ingestion import generate_sql_identity
+
+sql_report = generate_sql_identity(ROOT / "datas" / "machine.sql", root=ROOT)
+print(sql_report["path"])
+for name, table in sql_report["tables"].items():
+    print(name, len(table["rows"]), len(table["schema"]))
+```
+
+Le rapport est enregistré sous `artifacts/ingestion/identities/YYYYMMDD/machine_HHMMSS.md`. Les paramètres `root`, `output_stem` et `types_path` permettent de personnaliser la racine de sortie, le nom de base et le catalogue. Les chemins relatifs sont résolus depuis le répertoire courant.
+
+Le schéma `CREATE TABLE` détermine les types : il n’est pas recopié dans un contrat YAML manuel. Le traitement réutilise la lecture de texte, les convertisseurs et les statistiques des CSV. Les clés primaires, références et noms terminant par `_id`, `_code` ou `_badge` sont considérés comme des identifiants.
+
+Le périmètre couvre les définitions explicites de tables, les index, `BEGIN`/`COMMIT` et les `INSERT ... VALUES`, avec ou sans liste de colonnes. Les identifiants non quotés sont normalisés selon PostgreSQL ; les identifiants quotés conservent leur casse. Les tuples sont comptés et conservés tels qu’ils apparaissent, même en présence de doublons ou de `ON CONFLICT`. Le rapport n’est pas une simulation de l’état de la base.
+
+Chaque table présente ses colonnes déclarées, les listes de colonnes fournies par INSERT, les types SQL normalisés et logiques, les contraintes, les défauts, les statistiques et les observations. Les valeurs omises, les `NULL` explicites, les valeurs valides et les expressions non évaluées sont distingués. Les valeurs invalides sont comptées dans les observations et exclues des calculs.
+
+Les expressions comme `NOW()`, les calculs et les casts ne sont pas exécutés : ils sont indiqués comme non évalués. Les colonnes omises ne sont pas remplies par leur défaut, même s’il est littéral. Les dates ont min/max et les mesures numériques min/max/moyenne/médiane ; les identifiants, booléens et textes n’ont pas de statistiques numériques. Les colonnes temporelles ou numériques sans données exploitables affichent `N/A`.
+
+La précision des décimaux est conservée sans passage par `float`. Les moyennes non finies en base dix sont arrondies selon le contexte décimal, d’au moins 28 chiffres, augmenté pour les valeurs longues. Les `TIMESTAMPTZ` littéraux exigent un fuseau explicite et sont rendus en UTC.
+
+Une erreur de parsing, un type SQL non pris en charge, un INSERT sans table déclarée, une liste de valeurs incohérente ou une instruction hors périmètre interrompt le traitement avant création d’un rapport. `INSERT SELECT`, `CREATE TABLE AS`, les mises à jour autonomes et les procédures ne sont pas pris en charge. Les contraintes sont décrites et les `NULL` explicites incompatibles avec `NOT NULL` sont signalés ; les `CHECK`, la précision déclarée des numériques, les références et l’unicité ne font pas l’objet d’une validation PostgreSQL complète.
 
 ## Vérification
 
 Depuis la racine du projet : `uv run python -m unittest discover -s tests -v`.
 
-Les tests vérifient les deux rapports historiques, un dataset supplémentaire, les contraintes, les erreurs de configuration, les types personnalisés et le lancement du notebook depuis ses deux répertoires pris en charge. Les rapports de test sont écrits dans des répertoires temporaires.
+Les tests vérifient les deux rapports CSV historiques, les contrats et le skill CSV, l’extraction SQL, les décimaux, les fuseaux, les expressions non évaluées et le lancement complet du notebook depuis ses deux répertoires pris en charge. Les rapports de test sont écrits dans des répertoires temporaires.
