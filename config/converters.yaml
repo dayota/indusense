@@ -1,0 +1,111 @@
+# Généré par packages/ingestion/scripts/update_converters.py ; ne pas modifier à la main.
+version: 1
+converters:
+  string:
+    function: indusense_ingestion.contracts.string_values
+    arguments:
+    - series
+    - options
+    types:
+      IDENTIFIER:
+        statistics: &id001 []
+      TEXT:
+        statistics: []
+      IDENTITY:
+        statistics: *id001
+  integer:
+    function: indusense_ingestion.contracts.integer_values
+    arguments:
+    - series
+    - options
+    types:
+      INTEGER:
+        statistics:
+        - min
+        - max
+        - mean
+        - median
+  binary:
+    function: indusense_ingestion.contracts.binary_values
+    arguments:
+    - series
+    - options
+    types:
+      BINARY:
+        statistics: []
+  number:
+    function: indusense_ingestion.contracts.number_values
+    arguments:
+    - series
+    - options
+    types:
+      NUMBER:
+        statistics: &id002
+        - min
+        - max
+        - mean
+        - median
+      FLOAT:
+        statistics: *id002
+  datetime:
+    function: indusense_ingestion.contracts.datetime_values
+    arguments:
+    - series
+    - options
+    types:
+      DATE:
+        format: '%Y-%m-%d'
+        pattern: \d{4}-\d{2}-\d{2}
+        statistics:
+        - min
+        - max
+      TIME:
+        format: '%H:%M'
+        pattern: \d{2}:\d{2}
+        statistics:
+        - min
+        - max
+      TIMESTAMP:
+        format: '%Y-%m-%d %H:%M:%S'
+        pattern: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}
+        statistics: &id003
+        - min
+        - max
+      DATETIME:
+        format: '%Y-%m-%d %H:%M:%S'
+        pattern: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}
+        statistics: *id003
+  decimal:
+    function: indusense_ingestion.contracts.decimal_values
+    arguments:
+    - series
+    - options
+    types:
+      DECIMAL:
+        statistics:
+        - min
+        - max
+        - mean
+        - median
+  datetime_utc:
+    function: indusense_ingestion.contracts.utc_values
+    arguments:
+    - series
+    - options
+    types:
+      TIMESTAMPTZ:
+        format: '%Y-%m-%d %H:%M:%S%z'
+        statistics: &id004
+        - min
+        - max
+      DATETIME_UTC:
+        format: '%Y-%m-%d %H:%M:%S%z'
+        statistics: *id004
+  boolean:
+    function: indusense_ingestion.contracts.boolean_values
+    arguments:
+    - series
+    - options
+    types:
+      BOOLEAN:
+        statistics: []

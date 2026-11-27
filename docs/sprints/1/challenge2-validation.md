@@ -4,9 +4,9 @@ Date : 2026-11-20. Branche : `sprint1/challenge2`, créée après fusion du chal
 
 ## Réalisation
 
-Le [module SQL](../../../scripts/sql_ingestion.py) lit le script PostgreSQL, extrait les schémas et les tuples `INSERT VALUES`, applique les convertisseurs partagés et génère une carte d’identité par script avec une section par table. Le [notebook](../../../notebooks/sprint1.ipynb) lance désormais les traitements CSV puis SQL. Le [guide](../../ingestion-contracts.md) décrit l’API, les types et les limites.
+Le [module SQL](../../../packages/ingestion/src/indusense_ingestion/sql_ingestion.py) lit le script PostgreSQL, extrait les schémas et les tuples `INSERT VALUES`, applique les convertisseurs partagés et génère une carte d’identité par script avec une section par table. Le [notebook](../../../notebooks/sprint1.ipynb) lance désormais les traitements CSV puis SQL. Le [guide](../../ingestion-contracts.md) décrit l’API, les types et les limites.
 
-La lecture de texte et les statistiques sont partagées avec les CSV. Le [catalogue](../../../config/types.yaml) et le [registre](../../../scripts/contracts.py) ajoutent DECIMAL, BOOLEAN et DATETIME_UTC. Les schémas SQL alimentent automatiquement les contrats en mémoire : aucune copie manuelle des tables dans un YAML n’est nécessaire.
+La lecture de texte et les statistiques sont partagées avec les CSV. Le [catalogue](../../../config/types.yaml) et le [registre](../../../packages/ingestion/src/indusense_ingestion/contracts.py) ajoutent DECIMAL, BOOLEAN et DATETIME_UTC. Les schémas SQL alimentent automatiquement les contrats en mémoire : aucune copie manuelle des tables dans un YAML n’est nécessaire.
 
 ## Choix du parseur
 

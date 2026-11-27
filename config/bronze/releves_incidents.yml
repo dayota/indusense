@@ -1,0 +1,39 @@
+version: '2.0.0'
+kind: BRONZE
+timezone: UTC
+source:
+  path: datas/releves_incidents.csv
+  format: CSV
+  encoding: utf-8
+  field_delimiter: ','
+  row_delimiter: '\n'
+  has_header: true
+target:
+  schema: bronze
+  table: releves_incidents
+  natural_key: [incident_id]
+max_cast_error_ratio: 0.0
+columns:
+  - {source_name: incident_id, target_name: incident_id, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: date, target_name: date, type: DATE, silver_type: DATE}
+  - {source_name: time, target_name: time, type: TIME, silver_type: TIME}
+  - {source_name: operator_name, target_name: operator_name, type: TEXT, silver_type: TEXT}
+  - {source_name: machine_id, target_name: machine_id, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: severity, target_name: severity, type: NUMBER, silver_type: INTEGER, unit: LEVEL}
+  - {source_name: operator_badge, target_name: operator_badge, type: IDENTIFIER, silver_type: TEXT}
+  - {source_name: comment, target_name: comment, type: TEXT, silver_type: TEXT}
+  - {source_name: shift, target_name: shift, type: TEXT, silver_type: TEXT}
+  - {source_name: type_surchauffe, target_name: type_surchauffe, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_baisse_pression, target_name: type_baisse_pression, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_vibration, target_name: type_vibration, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_bruit_mecanique, target_name: type_bruit_mecanique, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_surconsommation, target_name: type_surconsommation, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_blocage_mecanique, target_name: type_blocage_mecanique, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_alarme_capteur, target_name: type_alarme_capteur, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_arret_urgence, target_name: type_arret_urgence, type: BINARY, silver_type: SMALLINT}
+  - {source_name: type_defaut_qualite, target_name: type_defaut_qualite, type: BINARY, silver_type: SMALLINT}
+derived_columns:
+  - target_name: date_time
+    operation: MERGE
+    operate_on_columns: [date, time]
+    silver_type: TIMESTAMPTZ

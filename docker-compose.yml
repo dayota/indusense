@@ -1,0 +1,196 @@
+# Infrastructure InduSense : PostgreSQL local et interfaces derrière Traefik.
+volumes:
+  dbstorage:
+    name: ${DB_DATA_VOLUME:-indusense-db-data}
+  prometheusstorage:
+    name: ${PROMETHEUS_DATA_VOLUME:-indusense-prometheus-data}
+  alertmanagerstorage:
+    name: ${ALERTMANAGER_DATA_VOLUME:-indusense-alertmanager-data}
+  grafanastorage:
+    name: ${GRAFANA_DATA_VOLUME:-indusense-grafana-data}
+
+networks:
+  default: {}
+  proxy:
+    external: true
+    name: localhost-proxy
+
+services:
+  ui:
+    build:
+      context: ./apps/ui
+      target: production
+    restart: unless-stopped
+    environment:
+      NUXT_API_BASE: http://api:8000/api
+      NUXT_PUBLIC_API_BASE: /api
+    healthcheck:
+      test: ["CMD", "node", "--input-type=module", "-e", "const r = await fetch('http://127.0.0.1:3000/'); if (!r.ok) process.exit(1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+    networks: [default, proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: localhost-proxy
+      traefik.http.routers.indusense-ui.rule: Host(`indusense.localhost`)
+      traefik.http.routers.indusense-ui.entrypoints: web
+      traefik.http.routers.indusense-ui.priority: "10"
+      traefik.http.routers.indusense-ui-secure.rule: Host(`indusense.localhost`)
+      traefik.http.routers.indusense-ui-secure.entrypoints: websecure
+      traefik.http.routers.indusense-ui-secure.tls: "true"
+      traefik.http.routers.indusense-ui-secure.priority: "10"
+      traefik.http.routers.indusense-ui-secure.service: indusense-ui
+      traefik.http.services.indusense-ui.loadbalancer.server.port: "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    restart: unless-stopped
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-indusense_db}
+      DB_USER: ${DB_USER:-indusense_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dbpassword}
+      INDUSENSE_PROJECT_ROOT: /workspace
+    volumes:
+      - ./config:/workspace/config:ro
+      - ./datas:/workspace/datas:ro
+      - ./datas/ingestion:/workspace/datas/ingestion
+      - ./artifacts:/workspace/artifacts
+    networks: [default, proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: localhost-proxy
+      traefik.http.routers.indusense-api.rule: Host(`indusense.localhost`) && (Path(`/api`) || PathPrefix(`/api/`))
+      traefik.http.routers.indusense-api.entrypoints: web
+      traefik.http.routers.indusense-api.priority: "100"
+      traefik.http.routers.indusense-api-secure.rule: Host(`indusense.localhost`) && (Path(`/api`) || PathPrefix(`/api/`))
+      traefik.http.routers.indusense-api-secure.entrypoints: websecure
+      traefik.http.routers.indusense-api-secure.tls: "true"
+      traefik.http.routers.indusense-api-secure.priority: "100"
+      traefik.http.routers.indusense-api-secure.service: indusense-api
+      traefik.http.services.indusense-api.loadbalancer.server.port: "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-indusense_db}
+      DB_USER: ${DB_USER:-indusense_user}
+      DB_PASSWORD: ${DB_PASSWORD:-dbpassword}
+    command: ["alembic", "-c", "apps/api/alembic.ini", "upgrade", "head"]
+    labels:
+      traefik.enable: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:${DB_TAG:-15.1}
+    restart: unless-stopped
+    labels:
+      traefik.enable: "false"
+    # Ecoute sur la boucle locale uniquement : une base de developpement ne
+    # doit pas etre joignable depuis le reseau.
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-indusense_db}
+      POSTGRES_USER: ${DB_USER:-indusense_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dbpassword}
+    volumes:
+      - dbstorage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-indusense_user} -d ${DB_NAME:-indusense_db}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+
+  # Monitoring optionnel : docker compose --profile monitoring up -d
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_TAG:-v2.54.1}
+    restart: unless-stopped
+    profiles: [monitoring]
+    networks: [default, proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: localhost-proxy
+      traefik.http.routers.indusense-prometheus.rule: Host(`prometheus.indusense.localhost`)
+      traefik.http.routers.indusense-prometheus.entrypoints: web
+      traefik.http.services.indusense-prometheus.loadbalancer.server.port: "9090"
+    volumes:
+      - ./infra/monitoring/prometheus:/etc/prometheus:ro
+      - prometheusstorage:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+
+  alertmanager:
+    image: prom/alertmanager:${ALERTMANAGER_TAG:-v0.27.0}
+    restart: unless-stopped
+    profiles: [monitoring]
+    networks: [default, proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: localhost-proxy
+      traefik.http.routers.indusense-alertmanager.rule: Host(`alertmanager.indusense.localhost`)
+      traefik.http.routers.indusense-alertmanager.entrypoints: web
+      traefik.http.services.indusense-alertmanager.loadbalancer.server.port: "9093"
+    volumes:
+      - ./infra/monitoring/alertmanager:/etc/alertmanager:ro
+      - alertmanagerstorage:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_TAG:-11.2.0}
+    restart: unless-stopped
+    profiles: [monitoring]
+    networks: [default, proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: localhost-proxy
+      traefik.http.routers.indusense-grafana.rule: Host(`grafana.indusense.localhost`)
+      traefik.http.routers.indusense-grafana.entrypoints: web
+      traefik.http.services.indusense-grafana.loadbalancer.server.port: "3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-indusense}
+      GF_SERVER_ROOT_URL: http://grafana.indusense.localhost
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafanastorage:/var/lib/grafana
+    depends_on:
+      - prometheus

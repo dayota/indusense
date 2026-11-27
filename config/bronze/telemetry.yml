@@ -1,0 +1,24 @@
+version: '2.0.0'
+kind: BRONZE
+timezone: UTC
+source:
+  path: datas/telemetry.csv
+  format: CSV
+  encoding: utf-8
+  field_delimiter: ','
+  row_delimiter: '\n'
+  has_header: true
+target:
+  schema: bronze
+  table: telemetry
+  natural_key: [machine_id, timestamp]
+max_cast_error_ratio: 0.0
+columns:
+  - {source_name: machine_id, target_name: machine_id, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: timestamp, target_name: timestamp, type: TIMESTAMPTZ, silver_type: TIMESTAMPTZ, nullable: false}
+  - {source_name: temperature_c, target_name: temperature_c, type: NUMBER, silver_type: DOUBLE PRECISION, unit: CELSIUS}
+  - {source_name: pressure_bar, target_name: pressure_bar, type: NUMBER, silver_type: DOUBLE PRECISION, unit: BAR}
+  - {source_name: voltage_mean_v, target_name: voltage_mean_v, type: NUMBER, silver_type: DOUBLE PRECISION, unit: VOLT}
+  - {source_name: rotation_mean_rpm, target_name: rotation_mean_rpm, type: NUMBER, silver_type: DOUBLE PRECISION, unit: RPM}
+  - {source_name: pieces_produced, target_name: pieces_produced, type: NUMBER, silver_type: INTEGER, unit: PIECE}
+derived_columns: []

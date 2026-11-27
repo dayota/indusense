@@ -4,7 +4,7 @@
 
 Statut : réalisé le 2026-11-20. Le [skill](../../../skills/dataset-identity/SKILL.md) est créé, validé et installé dans `~/.codex/skills/dataset-identity`. Le [bilan de validation](challenge1-skill-validation.md) détaille les tests exécutés et les limites de la revue conversationnelle.
 
-Créer un skill `dataset-identity` permettant à un agent d’ajouter un dataset CSV au processus de cartes d’identité existant. S’appuyer sur le [guide d’ingestion](../../ingestion-contracts.md), les [contrats YAML](../../../config/contracts/), le [catalogue des types](../../../config/types.yaml) et le [module Python](../../../scripts/ingestion.py).
+Créer un skill `dataset-identity` permettant à un agent d’ajouter un dataset CSV au processus de cartes d’identité existant. S’appuyer sur le [guide d’ingestion](../../ingestion-contracts.md), les [contrats YAML](../../../config/contracts/), le [catalogue des types](../../../config/types.yaml) et le [module Python](../../../packages/ingestion/src/indusense_ingestion/ingestion.py).
 
 Le skill guide les décisions et les vérifications. Les YAML décrivent les contrats ; le module Python réalise les conversions, les statistiques et la génération des rapports.
 
@@ -42,7 +42,7 @@ Le skill doit retrouver le projet à partir du contexte ou d’un chemin fourni,
 
 - [x] Lire les consignes du dépôt, dont [AGENTS.md](../../../AGENTS.md), et vérifier la branche active. Sur `main` ou en HEAD détachée, appliquer l’[ADR 0001](../../ADR/0001-ne-pas-travailler-sur-main.md) avant toute écriture.
 - [x] Vérifier que le fichier source existe et relever encodage, séparateur, dimensions, noms des colonnes et exemples représentatifs.
-- [x] Utiliser la [lecture CSV existante](../../../scripts/ingestion.py) ; préserver les chaînes, les identifiants avec zéros initiaux et les sources.
+- [x] Utiliser la [lecture CSV existante](../../../packages/ingestion/src/indusense_ingestion/ingestion.py) ; préserver les chaînes, les identifiants avec zéros initiaux et les sources.
 - [x] Distinguer ce qui a été observé sur un échantillon de ce qui a été vérifié sur l’ensemble du fichier.
 - [x] Identifier les ambiguïtés utiles à résoudre : dates comme `01/02/2026`, codes numériques, unités ou nombres utilisant une virgule décimale.
 
@@ -56,7 +56,7 @@ Le skill doit retrouver le projet à partir du contexte ou d’un chemin fourni,
 - [x] Distinguer une proposition structurelle d’une contrainte métier : une colonne sans valeur vide ne prouve pas qu’elle est non nullable ; une plage observée ne définit pas une plage autorisée.
 - [x] Appliquer les priorités du moteur : colonne explicite, première règle de nom correspondante, puis inférence ou refus des colonnes supplémentaires.
 - [x] Ne demander une précision que si elle change le résultat ; poursuivre les vérifications indépendantes en attendant.
-- [x] Valider le contrat avec le [chargeur existant](../../../scripts/contracts.py) avant la génération du rapport.
+- [x] Valider le contrat avec le [chargeur existant](../../../packages/ingestion/src/indusense_ingestion/contracts.py) avant la génération du rapport.
 
 **Résultat attendu :** un contrat accepté par le moteur, avec des hypothèses clairement signalées et aucune contrainte métier déduite arbitrairement.
 

@@ -1,0 +1,11 @@
+groups:
+  - name: indusense
+    rules:
+      - alert: IndusenseApiUnavailable
+        expr: up{job="indusense-api"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: L’API InduSense est indisponible
+          description: Prometheus ne peut plus collecter les métriques de l’API depuis une minute.

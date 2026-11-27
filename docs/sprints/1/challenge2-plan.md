@@ -19,7 +19,7 @@ Le script annonce PostgreSQL et contient `BEGIN`, `COMMIT`, deux `CREATE TABLE`,
 
 Ces nombres constituent les résultats attendus à confirmer par le parseur. Les données couvrent des identifiants, du texte, des entiers, un décimal `NUMERIC(6,2)`, une date, un booléen et des horodatages `TIMESTAMPTZ`.
 
-Réutiliser le [moteur CSV](../../../scripts/ingestion.py), le [chargement des contrats](../../../scripts/contracts.py) et le [catalogue des types](../../../config/types.yaml) lorsque leurs interfaces conviennent. Préserver le fonctionnement du [notebook](../../../notebooks/sprint1.ipynb), des contrats CSV et du skill CSV existant. L’extension du skill au SQL est hors périmètre de ce challenge.
+Réutiliser le [moteur CSV](../../../packages/ingestion/src/indusense_ingestion/ingestion.py), le [chargement des contrats](../../../packages/ingestion/src/indusense_ingestion/contracts.py) et le [catalogue des types](../../../config/types.yaml) lorsque leurs interfaces conviennent. Préserver le fonctionnement du [notebook](../../../notebooks/sprint1.ipynb), des contrats CSV et du skill CSV existant. L’extension du skill au SQL est hors périmètre de ce challenge.
 
 ## Étape 1 — Vérifier la branche et la source
 

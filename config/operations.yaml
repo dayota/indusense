@@ -1,0 +1,12 @@
+version: 1
+# Registre fermé : les slugs désignent des fonctions autorisées dans le code,
+# jamais un module Python chargé dynamiquement depuis un contrat.
+operations:
+  MERGE: {slug: merge}
+  NORM: {slug: normalize}
+  STD: {slug: standardize}
+  ENC: {slug: encode}
+  ANO: {slug: pseudonymize}
+  DEL: {slug: deduplicate}
+  IMP: {slug: impute}
+  OUT: {slug: flag-outliers}

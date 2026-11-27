@@ -1,0 +1,21 @@
+# À charger explicitement après docker-compose.yml.
+services:
+  api:
+    build:
+      target: development
+    volumes:
+      - ./apps/api/src:/workspace/apps/api/src:ro
+      - ./packages/ingestion/src:/workspace/packages/ingestion/src:ro
+  ui:
+    build:
+      target: development
+    volumes:
+      - ./apps/ui:/app
+      - ui_node_modules:/app/node_modules
+      - ui_nuxt:/app/.nuxt
+    environment:
+      NUXT_TELEMETRY_DISABLED: "1"
+
+volumes:
+  ui_node_modules:
+  ui_nuxt:

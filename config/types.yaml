@@ -1,16 +1,20 @@
 version: 1
 types:
-  TEXT:
+  # Types de columns[].type dans le schéma Bronze v2.
+  IDENTIFIER:
     converter: string
     statistics: []
-  IDENTITY:
+  NUMBER:
+    converter: number
+    statistics: [min, max, mean, median]
+  BINARY:
+    converter: binary
+    statistics: []
+  TEXT:
     converter: string
     statistics: []
   INTEGER:
     converter: integer
-    statistics: [min, max, mean, median]
-  FLOAT:
-    converter: number
     statistics: [min, max, mean, median]
   DECIMAL:
     converter: decimal
@@ -18,10 +22,6 @@ types:
   BOOLEAN:
     converter: boolean
     statistics: []
-  DATETIME_UTC:
-    converter: datetime_utc
-    format: "%Y-%m-%d %H:%M:%S%z"
-    statistics: [min, max]
   DATE:
     converter: datetime
     format: "%Y-%m-%d"
@@ -32,8 +32,12 @@ types:
     format: "%H:%M"
     pattern: '\d{2}:\d{2}'
     statistics: [min, max]
-  DATETIME:
+  TIMESTAMP:
     converter: datetime
     format: "%Y-%m-%d %H:%M:%S"
     pattern: '\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
+    statistics: [min, max]
+  TIMESTAMPTZ:
+    converter: datetime_utc
+    format: "%Y-%m-%d %H:%M:%S%z"
     statistics: [min, max]

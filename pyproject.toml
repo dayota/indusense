@@ -3,12 +3,18 @@ name = "indusense"
 version = "0.1.0"
 requires-python = ">=3.15"
 dependencies = [
-    "pandas>=3.1.1",
-    "pyyaml>=6.0.3",
-    "sqlglot>=30.33.0",
+    "dvc>=3.67.1",
+    "indusense-ingestion",
 ]
 
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/ingestion", "apps/api"]
+
+[tool.uv.sources]
+indusense-ingestion = { workspace = true }
+
 [dependency-groups]
-dev = [
-    "ipykernel>=7.4.0",
-]
+dev = ["ipykernel>=7.4.0", "httpx>=0.28,<1"]

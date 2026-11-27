@@ -1,0 +1,24 @@
+version: '2.0.0'
+kind: BRONZE
+timezone: UTC
+source:
+  path: datas/machine.sql
+  format: SQL
+  encoding: utf-8
+  table: maintenance
+target:
+  schema: bronze
+  table: maintenance
+  natural_key: [maintenance_id]
+max_cast_error_ratio: 0.0
+columns:
+  - {source_name: maintenance_id, target_name: maintenance_id, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: machine_code, target_name: machine_code, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: maintenance_at, target_name: maintenance_at, type: TIMESTAMPTZ, silver_type: TIMESTAMPTZ}
+  - {source_name: maintenance_type, target_name: maintenance_type, type: TEXT, silver_type: TEXT}
+  - {source_name: action_type, target_name: action_type, type: TEXT, silver_type: TEXT}
+  - {source_name: component, target_name: component, type: TEXT, silver_type: TEXT}
+  - {source_name: description, target_name: description, type: TEXT, silver_type: TEXT}
+  - {source_name: related_incident_id, target_name: related_incident_id, type: IDENTIFIER, silver_type: TEXT}
+  - {source_name: duration_hours, target_name: duration_hours, type: NUMBER, silver_type: 'NUMERIC(6,2)', unit: HOUR}
+derived_columns: []
