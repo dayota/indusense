@@ -1,0 +1,36 @@
+# Environnements Python et fichiers compilés
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Construction et métadonnées des paquets Python
+/build/
+/dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Caches des tests, du typage et des outils de qualité
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.cache/
+
+# Rapports de couverture et notebooks exécutés localement
+.coverage
+.coverage.*
+/coverage.xml
+/htmlcov/
+.ipynb_checkpoints/
+
+# Journaux et configuration locale ; conserver les exemples versionnables
+*.log
+.env
+.env.*
+!.env.example
+!.env.*.example
+.DS_Store

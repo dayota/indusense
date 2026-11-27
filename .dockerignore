@@ -1,0 +1,13 @@
+.git
+.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/.pnpm-store
+**/.nuxt
+**/.output
+.env
+.env.*
+artifacts
+datas
+notebooks

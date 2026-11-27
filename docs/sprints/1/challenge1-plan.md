@@ -72,7 +72,7 @@ Utiliser le nom `releves_incidents_HHMMSS.md`, cohérent avec le fichier source 
 
 ## Organisation du code
 
-Le [notebook](../../../notebooks/sprint1.ipynb) lance cinq fonctions réutilisables, désormais regroupées dans le [module d’ingestion](../../../scripts/ingestion.py) :
+Le [notebook](../../../notebooks/sprint1.ipynb) lance cinq fonctions réutilisables, désormais regroupées dans le [module d’ingestion](../../../packages/ingestion/src/indusense_ingestion/ingestion.py) :
 
 1. Lecture du CSV.
 2. Inférence des types.

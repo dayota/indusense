@@ -1,0 +1,31 @@
+# Dépendances Node et caches des gestionnaires de paquets
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/cache/
+.yarn/unplugged/
+
+# Fichiers générés par Nuxt, Nitro et Vite
+.nuxt/
+.output/
+.data/
+.nitro/
+.cache/
+.vite/
+/dist/
+*.tsbuildinfo
+
+# Rapports de tests et caches des outils de qualité
+/coverage/
+/playwright-report/
+/test-results/
+.eslintcache
+.stylelintcache
+
+# Journaux et configuration locale ; conserver les exemples versionnables
+*.log
+.env
+.env.*
+!.env.example
+!.env.*.example
+.DS_Store

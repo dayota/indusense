@@ -1,6 +1,6 @@
 # Réutiliser les cartes d’identité CSV et SQL
 
-Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../scripts/ingestion.py). Installer les dépendances avec `uv sync` avant de l’exécuter.
+Le [notebook](../notebooks/sprint1.ipynb) lance le traitement du [module d’ingestion](../packages/ingestion/src/indusense_ingestion/ingestion.py). Installer les dépendances avec `uv sync --all-packages --locked` avant de l’exécuter.
 
 ## Utiliser le skill dataset-identity
 
@@ -17,11 +17,11 @@ La sélection automatique reste autorisée. Si le skill n’apparaît pas dans u
 
 Le skill demande seulement les précisions nécessaires, par exemple pour un format de date ambigu ou un dialecte SQL incertain. Il ne déduit pas les contraintes métier de la seule distribution des données et n’effectue pas de commit ou push sans demande. Le parcours SQL est détaillé dans une [référence dédiée](../skills/dataset-identity/references/sql.md), chargée seulement pour ce format.
 
-Le [lanceur du skill](../skills/dataset-identity/scripts/run_identity.py) utilise le moteur existant et refuse toute génération sur `main` ou en HEAD détachée. Exemple depuis la racine, avec `uv run python` ou l’interpréteur configuré du projet :
+Le [lanceur du skill](../skills/dataset-identity/scripts/run_identity.py) utilise le moteur existant et refuse toute génération sur `main` ou en HEAD détachée. Exemple depuis la racine, avec `uv run --all-packages --locked python` ou l’interpréteur configuré du projet :
 
 ```bash
-uv run python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/releves_incidents.csv --contract config/contracts/incidents.yaml
-uv run python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/machine.sql
+uv run --all-packages --locked python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/releves_incidents.csv --contract config/contracts/incidents.yaml
+uv run --all-packages --locked python -B skills/dataset-identity/scripts/run_identity.py --project . --source datas/machine.sql
 ```
 
 Le lanceur choisit CSV ou PostgreSQL par l’extension du fichier, sans tenir compte de la casse. `--contract` est obligatoire pour les CSV et refusé pour le SQL ; `--types`, `--output-root` et `--stem` fonctionnent dans les deux parcours. Les autres extensions sont refusées. La sortie JSON donne `path`, `format` et `notes`, puis `rows`/`cols` pour les CSV ou `tables` (dimensions par table) et `inventory` pour le SQL.
@@ -32,7 +32,7 @@ Ce contrôle complète les consignes de l’agent, qui s’appliquent aussi avan
 
 - [types.yaml](../config/types.yaml) définit les types, leurs convertisseurs, les formats temporels et les statistiques applicables.
 - Les [contrats](../config/contracts/) décrivent les colonnes de chaque dataset. Les noms sont sensibles à la casse.
-- Les convertisseurs sont des fonctions Python du [registre explicite](../scripts/contracts.py). Le YAML référence leur nom ; il ne peut pas importer ou exécuter une fonction arbitraire.
+- Les convertisseurs sont des fonctions Python du [registre explicite](../packages/ingestion/src/indusense_ingestion/contracts.py). Le YAML référence leur nom ; il ne peut pas importer ou exécuter une fonction arbitraire.
 
 Les fichiers portent `version: 1`. Le chargement repose sur un dérivé de `yaml.SafeLoader` refusant aussi les clés dupliquées ([documentation PyYAML](https://pyyaml.org/wiki/PyYAMLDocumentation)). Un type, un convertisseur ou une option inconnus sont refusés avant la lecture du CSV.
 
@@ -69,6 +69,8 @@ generate_identity(
     contract_path=ROOT / "config" / "contracts" / "ventes.yaml",
 )
 ```
+
+`INDUSENSE_PROJECT_ROOT` définit la racine des ressources lorsque le traitement est lancé hors du dépôt. Le paquet ne déduit aucun chemin depuis son emplacement d’installation.
 
 `types_path` permet de choisir un autre catalogue et `root` de choisir une autre racine de sortie. Les chemins sont résolus par rapport au répertoire courant ; le notebook fournit des chemins absolus via `ROOT`.
 
@@ -109,12 +111,12 @@ Le catalogue contient aussi `DECIMAL` (convertisseur `decimal`), `BOOLEAN` (`boo
 
 ## Carte d’identité PostgreSQL
 
-Le [module SQL](../scripts/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` réutilise ce même module pour son parcours SQL.
+Le [module SQL](../packages/ingestion/src/indusense_ingestion/sql_ingestion.py) analyse un script avec SQLGlot, sans exécuter de SQL ni se connecter à une base. Le choix du parseur et les vérifications sont décrits dans le [bilan du challenge 2](sprints/1/challenge2-validation.md). Le skill `dataset-identity` réutilise ce même module pour son parcours SQL.
 
 Depuis le notebook, après la cellule définissant `ROOT` :
 
 ```python
-from scripts.sql_ingestion import generate_sql_identity
+from indusense_ingestion.sql_ingestion import generate_sql_identity
 
 sql_report = generate_sql_identity(ROOT / "datas" / "machine.sql", root=ROOT)
 print(sql_report["path"])
@@ -138,6 +140,91 @@ Une erreur de parsing, un type SQL non pris en charge, un INSERT sans table déc
 
 ## Vérification
 
-Depuis la racine du projet : `uv run python -m unittest discover -s tests -v`.
+Depuis la racine du projet, installer les membres du workspace puis exécuter les deux suites :
+
+```bash
+uv sync --all-packages --locked
+uv run --all-packages --locked python -m unittest discover -s packages/ingestion/tests -v
+uv run --all-packages --locked python -m unittest discover -s tests -v
+```
 
 Les tests vérifient les deux rapports CSV historiques, les contrats et le skill CSV, l’extraction SQL, les décimaux, les fuseaux, les expressions non évaluées et le lancement complet du notebook depuis ses deux répertoires pris en charge. Les rapports de test sont écrits dans des répertoires temporaires.
+
+## Opérations déclarées dans les contrats Bronze v2
+
+Le [catalogue des opérations](../config/operations.yaml) associe les huit codes du
+[schéma Bronze](../config/schema/bronze.v2.schema.json) à des slugs du
+[registre Python](../packages/ingestion/src/indusense_ingestion/operations.py).
+`GET /api/operations` expose les associations et les fonctions correspondantes. Aucun import
+de fonction arbitraire depuis un YAML n'est autorisé.
+
+Les [méthodes](../packages/ingestion/src/indusense_ingestion/operation_methods.py) sont exécutables
+dans le moteur Python. Elles ne sont pas exécutées pendant l'ingestion Bronze. Leur déclenchement
+et leur persistance dans le parcours Nuxt Silver ne sont pas encore raccordés à ce moteur ;
+le parcours Silver historique conserve son comportement existant.
+
+Chaque déclaration peut ajouter `parameters`. La méthode est toujours explicite : aucune
+stratégie métier, aucun seuil ni ordre ordinal n'est choisi par défaut. Un ancien contrat peut
+rester déclaratif en Bronze sans ces paramètres, mais son exécution est alors refusée.
+
+| Code / slug | Méthodes et paramètres |
+|---|---|
+| MERGE / `merge` | `concat` avec `separator` obligatoire, ou `date-time-utc` avec deux entrées date puis heure. Un NULL produit un NULL ; un décalage non UTC est refusé, sans conversion d'horloge. |
+| NORM / `normalize` | `min-max` : `(x-min)/(max-min)` ; sans clipping des nouvelles valeurs. |
+| STD / `standardize` | `z-score` : `(x-moyenne)/écart-type` ; `ddof` obligatoire (0 : population, 1 : échantillon). |
+| ENC / `encode` | `one-hot` avec `drop_first` obligatoire ; ou `ordinal` avec `categories` dans l'ordre métier explicite. Une catégorie inconnue provoque un refus, sans ajustement silencieux. |
+| ANO / `pseudonymize` | `hmac-sha256`, avec `secret_ref` ; le secret non vide est fourni séparément en octets. |
+| DEL / `deduplicate` | `strict` : doublons identiques ; ou `key` : clés dans `operate_on_columns`, avec `aggregations` explicite pour chaque autre colonne (`identical`, `min`, `max`, `sum`, `mean`, `median`). `target_name` est le compteur de lignes agrégées. |
+| IMP / `impute` | `mean`, `median` ou `forward-fill` ; `order_by` et `max_gap_rows` obligatoires. Un trou entier supérieur au seuil reste NULL, sans remplissage partiel. Ajoute `<target_name>_is_imputed`. |
+| OUT / `flag-outliers` | `iqr`, `z-score` ou `mad`, avec `threshold` positif explicite ; `ddof` obligatoire pour z-score. Produit un indicateur nullable sans supprimer ni plafonner les données. |
+
+`group_by` est disponible pour NORM, STD, IMP et OUT. Les paramètres statistiques sont appris
+uniquement sur le DataFrame d'entraînement passé à `fit_operation`, jamais dans `apply_operation`.
+Un groupe absent de l'entraînement est refusé pour une opération qui dépend de statistiques.
+Les étendues, écarts-types, IQR ou MAD nuls sont refusés plutôt que remplacés arbitrairement.
+
+Pour OUT, IQR marque les valeurs hors `[Q1-threshold*IQR, Q3+threshold*IQR]` ; MAD marque
+`abs(x-médiane)/MAD > threshold`, sans facteur d'échelle implicite. Les NULL restent indéterminés.
+Pour IMP, `max_gap_rows` mesure une longueur en lignes consécutives après tri dans chaque groupe,
+et non une durée : il faut donc une série à cadence adaptée au seuil choisi. Les clés de tri
+doivent être non nulles et uniques dans chaque groupe ; le report ne traverse jamais les groupes.
+
+L'encodage one-hot utilise les colonnes `<target_name>_0`, `<target_name>_1`, etc. ; leur
+correspondance avec les catégories est conservée dans l'état appris, dans un ordre stable.
+Les fonctions n'altèrent jamais le DataFrame reçu. Elles ajoutent leurs résultats à une copie,
+sauf DEL qui retourne les lignes regroupées et leur compteur. ANO ajoute donc un pseudonyme :
+la projection finale des colonnes doit sélectionner celles à conserver en Silver ; l'ajout du
+pseudonyme ne supprime pas les identifiants bruts de la copie.
+
+Exemple de déclaration compatible avec `derived_columns` :
+
+```yaml
+target_name: temperature_normalized
+operation: NORM
+operate_on_columns: [temperature_c]
+silver_type: DOUBLE PRECISION
+parameters:
+  method: min-max
+  group_by: [machine_id]
+```
+
+Apprentissage séparé puis réutilisation, y compris après sérialisation JSON :
+
+```python
+import json
+from indusense_ingestion.operations import fit_operation, apply_operation
+
+state = fit_operation(training_frame, declaration, root=ROOT)
+serialized = json.dumps(state, allow_nan=False)
+restored = json.loads(serialized)
+prepared_test = apply_operation(test_frame, restored, root=ROOT)
+
+# Pour ANO uniquement : le secret vient de l'appelant, hors contrat et hors état appris.
+# prepared = apply_operation(frame, state, root=ROOT,
+#                            secrets={"operator": secret_from_secret_manager})
+```
+
+Les états appris contiennent la déclaration et les statistiques ou catégories, jamais le secret.
+Ils doivent être conservés avec les artefacts d'entraînement et réutilisés tels quels pour les
+données de validation, de test et de production. Les catégories et statistiques peuvent elles-mêmes
+être sensibles : le registre ne les publie pas dans `GET /api/operations`.

@@ -1,0 +1,910 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "kind",
+    "timezone",
+    "source",
+    "target",
+    "columns"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "kind": {
+      "const": "BRONZE"
+    },
+    "timezone": {
+      "const": "UTC"
+    },
+    "max_cast_error_ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "format",
+        "encoding"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "enum": [
+            "CSV",
+            "SQL"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field_delimiter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "row_delimiter": {
+          "enum": [
+            "\n",
+            "\r\n",
+            "\\n",
+            "\\r\\n"
+          ]
+        },
+        "has_header": {
+          "const": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "CSV"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "field_delimiter",
+              "row_delimiter",
+              "has_header"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "SQL"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "table"
+            ]
+          }
+        }
+      ]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "table",
+        "natural_key"
+      ],
+      "properties": {
+        "schema": {
+          "const": "bronze"
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 63
+        },
+        "natural_key": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_name",
+          "target_name",
+          "type",
+          "silver_type"
+        ],
+        "properties": {
+          "source_name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63
+          },
+          "type": {
+            "enum": [
+              "IDENTIFIER",
+              "NUMBER",
+              "BINARY",
+              "TEXT",
+              "INTEGER",
+              "DECIMAL",
+              "BOOLEAN",
+              "DATE",
+              "TIME",
+              "TIMESTAMP",
+              "TIMESTAMPTZ"
+            ]
+          },
+          "silver_type": {
+            "$ref": "#/$defs/postgresql_silver_type"
+          },
+          "unit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "NUMBER"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "unit"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "derived_columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target_name",
+          "operation",
+          "operate_on_columns",
+          "silver_type"
+        ],
+        "properties": {
+          "target_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 63
+          },
+          "operation": {
+            "enum": [
+              "MERGE",
+              "NORM",
+              "STD",
+              "ENC",
+              "ANO",
+              "DEL",
+              "IMP",
+              "OUT"
+            ]
+          },
+          "operate_on_columns": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            }
+          },
+          "silver_type": {
+            "$ref": "#/$defs/postgresql_silver_type"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Paramètres de la méthode Silver. Obligatoires à l’exécution ; les anciens contrats Bronze peuvent rester déclaratifs."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "MERGE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "operate_on_columns": {
+                  "minItems": 2
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "MERGE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/merge_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "NORM"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/normalize_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "STD"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/standardize_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "ENC"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/encode_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "ANO"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/pseudonymize_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "DEL"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/deduplicate_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "IMP"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/impute_parameters"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "operation": {
+                  "const": "OUT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "parameters": {
+                  "$ref": "#/$defs/outlier_parameters"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "postgresql_native_type": {
+      "type": "string",
+      "description": "Types PostgreSQL natifs et alias SQL documentés, sans types personnalisés ni pseudo-types.",
+      "enum": [
+        "ACLITEM",
+        "BIGINT",
+        "BIGSERIAL",
+        "BIT",
+        "BIT VARYING",
+        "BOOL",
+        "BOOLEAN",
+        "BOX",
+        "BPCHAR",
+        "BYTEA",
+        "CHAR",
+        "CHARACTER",
+        "CHARACTER VARYING",
+        "CID",
+        "CIDR",
+        "CIRCLE",
+        "DATE",
+        "DATEMULTIRANGE",
+        "DATERANGE",
+        "DECIMAL",
+        "DOUBLE PRECISION",
+        "FLOAT",
+        "FLOAT4",
+        "FLOAT8",
+        "INET",
+        "INT",
+        "INT2",
+        "INT2VECTOR",
+        "INT4",
+        "INT4MULTIRANGE",
+        "INT4RANGE",
+        "INT8",
+        "INT8MULTIRANGE",
+        "INT8RANGE",
+        "INTEGER",
+        "INTERVAL",
+        "JSON",
+        "JSONB",
+        "JSONPATH",
+        "LINE",
+        "LSEG",
+        "MACADDR",
+        "MACADDR8",
+        "MONEY",
+        "NAME",
+        "NUMERIC",
+        "NUMMULTIRANGE",
+        "NUMRANGE",
+        "OID",
+        "OIDVECTOR",
+        "PATH",
+        "PG_LSN",
+        "PG_SNAPSHOT",
+        "POINT",
+        "POLYGON",
+        "REAL",
+        "REGCLASS",
+        "REGCOLLATION",
+        "REGCONFIG",
+        "REGDICTIONARY",
+        "REGNAMESPACE",
+        "REGOPER",
+        "REGOPERATOR",
+        "REGPROC",
+        "REGPROCEDURE",
+        "REGROLE",
+        "REGTYPE",
+        "SERIAL",
+        "SERIAL2",
+        "SERIAL4",
+        "SERIAL8",
+        "SMALLINT",
+        "SMALLSERIAL",
+        "TEXT",
+        "TID",
+        "TIME",
+        "TIME WITH TIME ZONE",
+        "TIME WITHOUT TIME ZONE",
+        "TIMESTAMP",
+        "TIMESTAMP WITH TIME ZONE",
+        "TIMESTAMP WITHOUT TIME ZONE",
+        "TIMESTAMPTZ",
+        "TIMETZ",
+        "TSMULTIRANGE",
+        "TSQUERY",
+        "TSRANGE",
+        "TSTZMULTIRANGE",
+        "TSTZRANGE",
+        "TSVECTOR",
+        "TXID_SNAPSHOT",
+        "UUID",
+        "VARBIT",
+        "VARCHAR",
+        "XID",
+        "XID8",
+        "XML"
+      ]
+    },
+    "postgresql_silver_type": {
+      "type": "string",
+      "description": "Type natif PostgreSQL, éventuellement paramétré ou sous forme de tableau. Ne contient aucune expression SQL.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/postgresql_native_type"
+        },
+        {
+          "pattern": "^(?:ACLITEM|BIGINT|BIT|BIT VARYING|BOOL|BOOLEAN|BOX|BPCHAR|BYTEA|CHAR|CHARACTER|CHARACTER VARYING|CID|CIDR|CIRCLE|DATE|DATEMULTIRANGE|DATERANGE|DECIMAL|DOUBLE PRECISION|FLOAT|FLOAT4|FLOAT8|INET|INT|INT2|INT2VECTOR|INT4|INT4MULTIRANGE|INT4RANGE|INT8|INT8MULTIRANGE|INT8RANGE|INTEGER|INTERVAL|JSON|JSONB|JSONPATH|LINE|LSEG|MACADDR|MACADDR8|MONEY|NAME|NUMERIC|NUMMULTIRANGE|NUMRANGE|OID|OIDVECTOR|PATH|PG_LSN|PG_SNAPSHOT|POINT|POLYGON|REAL|REGCLASS|REGCOLLATION|REGCONFIG|REGDICTIONARY|REGNAMESPACE|REGOPER|REGOPERATOR|REGPROC|REGPROCEDURE|REGROLE|REGTYPE|SMALLINT|TEXT|TID|TIME|TIME WITH TIME ZONE|TIME WITHOUT TIME ZONE|TIMESTAMP|TIMESTAMP WITH TIME ZONE|TIMESTAMP WITHOUT TIME ZONE|TIMESTAMPTZ|TIMETZ|TSMULTIRANGE|TSQUERY|TSRANGE|TSTZMULTIRANGE|TSTZRANGE|TSVECTOR|TXID_SNAPSHOT|UUID|VARBIT|VARCHAR|XID|XID8|XML)(?:\\[\\])+$"
+        },
+        {
+          "pattern": "^(?:NUMERIC|DECIMAL)\\(\\s*[1-9][0-9]*\\s*(?:,\\s*-?[0-9]+\\s*)?\\)(?:\\[\\])*$"
+        },
+        {
+          "pattern": "^(?:CHARACTER VARYING|CHARACTER|VARCHAR|CHAR|BPCHAR|BIT VARYING|VARBIT|BIT)\\(\\s*[1-9][0-9]*\\s*\\)(?:\\[\\])*$"
+        },
+        {
+          "pattern": "^(?:TIME|TIMESTAMP)\\(\\s*[0-6]\\s*\\)(?: WITH(?:OUT)? TIME ZONE)?(?:\\[\\])*$"
+        },
+        {
+          "pattern": "^(?:TIMETZ|TIMESTAMPTZ|INTERVAL)\\(\\s*[0-6]\\s*\\)(?:\\[\\])*$"
+        },
+        {
+          "pattern": "^FLOAT\\(\\s*(?:[1-9]|[1-4][0-9]|5[0-3])\\s*\\)(?:\\[\\])*$"
+        },
+        {
+          "pattern": "^INTERVAL (?:YEAR(?: TO MONTH)?|MONTH|DAY(?: TO (?:HOUR|MINUTE|SECOND))?|HOUR(?: TO (?:MINUTE|SECOND))?|MINUTE(?: TO SECOND)?|SECOND)(?:\\(\\s*[0-6]\\s*\\))?(?:\\[\\])*$"
+        }
+      ]
+    },
+    "merge_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "concat",
+            "date-time-utc"
+          ]
+        },
+        "separator": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "concat"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "separator"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "date-time-utc"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "separator": false
+            }
+          }
+        }
+      ]
+    },
+    "normalize_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "const": "min-max"
+        },
+        "group_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "method"
+      ]
+    },
+    "standardize_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "const": "z-score"
+        },
+        "ddof": {
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ]
+        },
+        "group_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "method",
+        "ddof"
+      ]
+    },
+    "encode_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "one-hot",
+            "ordinal"
+          ]
+        },
+        "drop_first": {
+          "type": "boolean"
+        },
+        "categories": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "one-hot"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "drop_first"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "ordinal"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "categories"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "one-hot"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "categories": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "ordinal"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "drop_first": false
+            }
+          }
+        }
+      ]
+    },
+    "pseudonymize_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "const": "hmac-sha256"
+        },
+        "secret_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "method",
+        "secret_ref"
+      ]
+    },
+    "deduplicate_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "strict",
+            "key"
+          ]
+        },
+        "aggregations": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "enum": [
+              "identical",
+              "min",
+              "max",
+              "sum",
+              "mean",
+              "median"
+            ]
+          }
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "key"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "aggregations"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "strict"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "aggregations": false
+            }
+          }
+        }
+      ]
+    },
+    "impute_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "mean",
+            "median",
+            "forward-fill"
+          ]
+        },
+        "group_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "order_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "max_gap_rows": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "method",
+        "order_by",
+        "max_gap_rows"
+      ]
+    },
+    "outlier_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "enum": [
+            "iqr",
+            "z-score",
+            "mad"
+          ]
+        },
+        "group_by": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "ddof": {
+          "type": "integer",
+          "enum": [
+            0,
+            1
+          ]
+        }
+      },
+      "required": [
+        "method",
+        "threshold"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "z-score"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "ddof"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "iqr"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ddof": false
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "mad"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "ddof": false
+            }
+          }
+        }
+      ]
+    }
+  }
+}

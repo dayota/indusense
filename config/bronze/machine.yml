@@ -1,0 +1,23 @@
+version: '2.0.0'
+kind: BRONZE
+timezone: UTC
+source:
+  path: datas/machine.sql
+  format: SQL
+  encoding: utf-8
+  table: machine
+target:
+  schema: bronze
+  table: machine
+  natural_key: [machine_code]
+max_cast_error_ratio: 0.0
+columns:
+  - {source_name: machine_code, target_name: machine_code, type: IDENTIFIER, silver_type: TEXT, nullable: false}
+  - {source_name: commissioning_date, target_name: commissioning_date, type: DATE, silver_type: DATE}
+  - {source_name: max_daily_capacity, target_name: max_daily_capacity, type: NUMBER, silver_type: INTEGER, unit: PIECE_PER_DAY}
+  - {source_name: max_hourly_capacity_pieces, target_name: max_hourly_capacity_pieces, type: NUMBER, silver_type: INTEGER, unit: PIECE_PER_HOUR}
+  - {source_name: model, target_name: model, type: TEXT, silver_type: TEXT}
+  - {source_name: production_line, target_name: production_line, type: TEXT, silver_type: TEXT}
+  - {source_name: location, target_name: location, type: TEXT, silver_type: TEXT}
+  - {source_name: criticality, target_name: criticality, type: TEXT, silver_type: TEXT}
+derived_columns: []
